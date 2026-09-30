@@ -12,7 +12,6 @@ router = APIRouter(prefix="/api/fund", tags=["养护资金"])
 
 service = FundService()
 
-LIST_FIELDS = ["资金编号", "费用类别", "项目名称", "批复金额", "已用金额", "剩余额度", "审批人员", "资金状态"]
 STATUSES = ["待审批", "已批复", "执行中", "已超支"]
 
 
@@ -28,6 +27,22 @@ def list_entries(
         raise HTTPException(status_code=400, detail="每页最多 200 条，请缩小分页范围")
     items, total = service.list_entries(keyword=keyword, status=status, page=page, size=size)
     return PageResult(items=items, total=total, page=page, size=size)
+
+
+@router.get("/summary")
+def fund_summary() -> dict[str, Any]:
+    """资金口径汇总：批复总额、已用金额、剩余额度、超支项目。
+
+    资金页统计卡与运营概览共用，剩余额度与列表/详情同源。
+    """
+    return service.summary()
+
+
+@router.get("/export")
+def export_entries() -> dict[str, Any]:
+    """导出养护资金清单：返回当前过滤条件下的全量数据。"""
+    items, total = service.list_entries(page=1, size=10000)
+    return {"module": "fund", "total": total, "items": items}
 
 
 @router.get("/{entry_id}", response_model=dict)
@@ -56,10 +71,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
-
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出养护资金清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "fund", "total": total, "items": items}

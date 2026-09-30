@@ -14,6 +14,11 @@ class Store:
         self._tables: dict[str, list[dict[str, Any]]] = {
             name: [dict(row) for row in rows] for name, rows in SEED_ROWS.items()
         }
+        # 存量历史资金记录回填：按新口径重算已用金额/剩余额度、补批复留档。
+        # 延迟导入避免 store 与 service 之间的循环依赖。
+        from app.services.fund_finance import reconcile_legacy
+
+        reconcile_legacy(self._tables.setdefault("fund", []))
 
     def module_names(self) -> list[str]:
         return sorted(self._tables)

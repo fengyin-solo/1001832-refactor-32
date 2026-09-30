@@ -35,4 +35,9 @@ def health() -> dict[str, object]:
 @app.get("/api/overview")
 def overview() -> dict[str, object]:
     """运营概览：把各业务模块的待处理量汇总成看板卡片。"""
-    return store.overview()
+    data = store.overview()
+    # 养护资金卡片与资金页统计卡、列表、详情共用 fund_finance 同一份口径
+    from app.services import fund_finance as finance
+
+    data["fund"] = finance.summarize(store.rows("fund"))
+    return data
